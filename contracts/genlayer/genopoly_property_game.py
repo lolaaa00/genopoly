@@ -1,0 +1,1426 @@
+# v0.2.16
+# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+
+from genlayer import *
+import json
+import hashlib
+
+
+GAME_NAME = "Genopoly"
+CONTRACT_VERSION = "1.0.0"
+
+
+BOARD_SPACES = [
+    {"id": 0, "name": "Start", "type": "start"},
+    {"id": 1, "name": "Ember Lane", "type": "property", "district": "Ember", "price": 60, "base_rent": 2, "rent_levels": [2, 10, 30, 90, 160, 250], "mortgage": 30},
+    {"id": 2, "name": "City Event", "type": "city_event"},
+    {"id": 3, "name": "Copper Row", "type": "property", "district": "Ember", "price": 60, "base_rent": 4, "rent_levels": [4, 20, 60, 180, 320, 450], "mortgage": 30},
+    {"id": 4, "name": "Civic Tax", "type": "tax", "amount": 200},
+    {"id": 5, "name": "Northline Station", "type": "transit", "price": 200, "mortgage": 100},
+    {"id": 6, "name": "Jade Avenue", "type": "property", "district": "Jade", "price": 100, "base_rent": 6, "rent_levels": [6, 30, 90, 270, 400, 550], "mortgage": 50},
+    {"id": 7, "name": "Market Event", "type": "market_event"},
+    {"id": 8, "name": "Jade Square", "type": "property", "district": "Jade", "price": 100, "base_rent": 6, "rent_levels": [6, 30, 90, 270, 400, 550], "mortgage": 50},
+    {"id": 9, "name": "Jade Court", "type": "property", "district": "Jade", "price": 120, "base_rent": 8, "rent_levels": [8, 40, 100, 300, 450, 600], "mortgage": 60},
+    {"id": 10, "name": "Lockup / Visiting", "type": "lockup"},
+    {"id": 11, "name": "Coral Street", "type": "property", "district": "Coral", "price": 140, "base_rent": 10, "rent_levels": [10, 50, 150, 450, 625, 750], "mortgage": 70},
+    {"id": 12, "name": "Waterworks", "type": "utility", "price": 150, "mortgage": 75},
+    {"id": 13, "name": "Coral Market", "type": "property", "district": "Coral", "price": 140, "base_rent": 10, "rent_levels": [10, 50, 150, 450, 625, 750], "mortgage": 70},
+    {"id": 14, "name": "Coral Heights", "type": "property", "district": "Coral", "price": 160, "base_rent": 12, "rent_levels": [12, 60, 180, 500, 700, 900], "mortgage": 80},
+    {"id": 15, "name": "Eastline Station", "type": "transit", "price": 200, "mortgage": 100},
+    {"id": 16, "name": "Harbor Road", "type": "property", "district": "Harbor", "price": 180, "base_rent": 14, "rent_levels": [14, 70, 200, 550, 750, 950], "mortgage": 90},
+    {"id": 17, "name": "City Event", "type": "city_event"},
+    {"id": 18, "name": "Harbor Quay", "type": "property", "district": "Harbor", "price": 180, "base_rent": 14, "rent_levels": [14, 70, 200, 550, 750, 950], "mortgage": 90},
+    {"id": 19, "name": "Harbor Point", "type": "property", "district": "Harbor", "price": 200, "base_rent": 16, "rent_levels": [16, 80, 220, 600, 800, 1000], "mortgage": 100},
+    {"id": 20, "name": "Rest Plaza", "type": "rest"},
+    {"id": 21, "name": "Ivory Road", "type": "property", "district": "Ivory", "price": 220, "base_rent": 18, "rent_levels": [18, 90, 250, 700, 875, 1050], "mortgage": 110},
+    {"id": 22, "name": "Market Event", "type": "market_event"},
+    {"id": 23, "name": "Ivory Court", "type": "property", "district": "Ivory", "price": 220, "base_rent": 18, "rent_levels": [18, 90, 250, 700, 875, 1050], "mortgage": 110},
+    {"id": 24, "name": "Ivory Tower", "type": "property", "district": "Ivory", "price": 240, "base_rent": 20, "rent_levels": [20, 100, 300, 750, 925, 1100], "mortgage": 120},
+    {"id": 25, "name": "Southline Station", "type": "transit", "price": 200, "mortgage": 100},
+    {"id": 26, "name": "Neon Avenue", "type": "property", "district": "Neon", "price": 260, "base_rent": 22, "rent_levels": [22, 110, 330, 800, 975, 1150], "mortgage": 130},
+    {"id": 27, "name": "Neon Plaza", "type": "property", "district": "Neon", "price": 260, "base_rent": 22, "rent_levels": [22, 110, 330, 800, 975, 1150], "mortgage": 130},
+    {"id": 28, "name": "Power Grid", "type": "utility", "price": 150, "mortgage": 75},
+    {"id": 29, "name": "Neon Heights", "type": "property", "district": "Neon", "price": 280, "base_rent": 24, "rent_levels": [24, 120, 360, 850, 1025, 1200], "mortgage": 140},
+    {"id": 30, "name": "Go To Lockup", "type": "go_to_lockup"},
+    {"id": 31, "name": "Obsidian Street", "type": "property", "district": "Obsidian", "price": 300, "base_rent": 26, "rent_levels": [26, 130, 390, 900, 1100, 1275], "mortgage": 150},
+    {"id": 32, "name": "Obsidian Yard", "type": "property", "district": "Obsidian", "price": 300, "base_rent": 26, "rent_levels": [26, 130, 390, 900, 1100, 1275], "mortgage": 150},
+    {"id": 33, "name": "City Event", "type": "city_event"},
+    {"id": 34, "name": "Obsidian Gate", "type": "property", "district": "Obsidian", "price": 320, "base_rent": 28, "rent_levels": [28, 150, 450, 1000, 1200, 1400], "mortgage": 160},
+    {"id": 35, "name": "Westline Station", "type": "transit", "price": 200, "mortgage": 100},
+    {"id": 36, "name": "Market Event", "type": "market_event"},
+    {"id": 37, "name": "Crown Avenue", "type": "property", "district": "Crown", "price": 350, "base_rent": 35, "rent_levels": [35, 175, 500, 1100, 1300, 1500], "mortgage": 175},
+    {"id": 38, "name": "Luxury Tax", "type": "tax", "amount": 100},
+    {"id": 39, "name": "Crown Palace", "type": "property", "district": "Crown", "price": 400, "base_rent": 50, "rent_levels": [50, 200, 600, 1400, 1700, 2000], "mortgage": 200},
+]
+
+
+DISTRICTS = {
+    "Ember": [1, 3],
+    "Jade": [6, 8, 9],
+    "Coral": [11, 13, 14],
+    "Harbor": [16, 18, 19],
+    "Ivory": [21, 23, 24],
+    "Neon": [26, 27, 29],
+    "Obsidian": [31, 32, 34],
+    "Crown": [37, 39],
+    "Transit": [5, 15, 25, 35],
+    "Utility": [12, 28],
+}
+
+
+TRANSIT_RENT = {1: 25, 2: 50, 3: 100, 4: 200}
+
+
+MARKET_EVENTS = [
+    {"text": "Collect 50 from treasury", "effect": {"type": "gain", "amount": 50}},
+    {"text": "Pay 50 service fee", "effect": {"type": "lose", "amount": 50}},
+    {"text": "Move to Start", "effect": {"type": "move_to", "space": 0}},
+    {"text": "Move to nearest transit", "effect": {"type": "nearest_transit"}},
+    {"text": "Advance three spaces", "effect": {"type": "advance", "spaces": 3}},
+    {"text": "Pay 25 per upgrade", "effect": {"type": "pay_per_upgrade", "amount": 25}},
+    {"text": "Receive release card", "effect": {"type": "release_card"}},
+    {"text": "Go to Lockup", "effect": {"type": "go_to_lockup"}},
+    {"text": "Collect 20 from each active player", "effect": {"type": "collect_from_all", "amount": 20}},
+    {"text": "Pay 15 to each active player", "effect": {"type": "pay_to_all", "amount": 15}},
+]
+
+
+CITY_EVENTS = [
+    {"text": "Tax refund: collect 100", "effect": {"type": "gain", "amount": 100}},
+    {"text": "Maintenance fee: pay 75", "effect": {"type": "lose", "amount": 75}},
+    {"text": "Move to next district space", "effect": {"type": "next_district"}},
+    {"text": "Move back three spaces", "effect": {"type": "advance", "spaces": -3}},
+    {"text": "Collect dividend: 50", "effect": {"type": "gain", "amount": 50}},
+    {"text": "Pay civic charge: 40", "effect": {"type": "lose", "amount": 40}},
+    {"text": "Receive release card", "effect": {"type": "release_card"}},
+    {"text": "Go to Lockup", "effect": {"type": "go_to_lockup"}},
+    {"text": "Upgrade inspection: pay 30 per upgrade", "effect": {"type": "pay_per_upgrade", "amount": 30}},
+    {"text": "Street festival: collect 25", "effect": {"type": "gain", "amount": 25}},
+]
+
+
+class GenopolyPropertyGame(gl.Contract):
+    games: TreeMap[str, str]
+    player_stats: TreeMap[str, str]
+    recent_games: TreeMap[str, str]
+    open_games: TreeMap[str, str]
+
+    game_keys: DynArray[str]
+    stats_keys: DynArray[str]
+    recent_keys: DynArray[str]
+    open_keys: DynArray[str]
+
+    total_games: u256
+
+    def __init__(self):
+        self.total_games = u256(0)
+
+    def _sender(self) -> str:
+        return str(gl.message.sender_address)
+
+    def _same_wallet(self, a: str, b: str) -> bool:
+        return str(a).lower() == str(b).lower()
+
+    def _tm_get(self, tm: TreeMap[str, str], key: str) -> str:
+        if key in tm:
+            return tm[key]
+        return ""
+
+    def _get_game(self, game_id: str) -> dict:
+        raw = self._tm_get(self.games, game_id)
+        if not raw:
+            return {}
+        return json.loads(raw)
+
+    def _save_game(self, game_id: str, game: dict) -> None:
+        if game_id not in self.games:
+            self.game_keys.append(game_id)
+        self.games[game_id] = json.dumps(game)
+
+    def _get_stats(self, wallet: str) -> dict:
+        raw = self._tm_get(self.player_stats, wallet)
+        if raw:
+            return json.loads(raw)
+        return {
+            "wallet": wallet, "wins": 0, "losses": 0, "bankruptcies": 0,
+            "games_played": 0, "total_rent_collected": 0, "total_rent_paid": 0,
+            "auctions_won": 0, "trades_completed": 0, "games_created": 0,
+            "fair_play_score": 100,
+        }
+
+    def _save_stats(self, wallet: str, stats: dict) -> None:
+        if wallet not in self.player_stats:
+            self.stats_keys.append(wallet)
+        self.player_stats[wallet] = json.dumps(stats)
+
+    def _add_open_game(self, game_id: str, payload: str) -> None:
+        if game_id not in self.open_games:
+            self.open_keys.append(game_id)
+        self.open_games[game_id] = payload
+
+    def _remove_open_game(self, game_id: str) -> None:
+        if game_id in self.open_games:
+            self.open_games[game_id] = ""
+
+    def _add_recent_game(self, game_id: str, payload: str) -> None:
+        if game_id not in self.recent_games:
+            self.recent_keys.append(game_id)
+        self.recent_games[game_id] = payload
+
+    def _is_valid_space(self, space_id: int) -> bool:
+        return space_id >= 0 and space_id < 40
+
+    def _is_ownable_space(self, space_id: int) -> bool:
+        if not self._is_valid_space(space_id):
+            return False
+        return BOARD_SPACES[space_id]["type"] in ("property", "transit", "utility")
+
+    def _active_players(self, game: dict) -> list:
+        return [p for p in game.get("players", []) if p.get("status") == "active"]
+
+    def _get_player(self, game: dict, wallet: str):
+        for p in game.get("players", []):
+            if self._same_wallet(p.get("wallet", ""), wallet):
+                return p
+        return None
+
+    def _player_index(self, game: dict, wallet: str) -> int:
+        for i, p in enumerate(game.get("players", [])):
+            if self._same_wallet(p.get("wallet", ""), wallet):
+                return i
+        return -1
+
+    def _current_player(self, game: dict):
+        players = game.get("players", [])
+        idx = game.get("current_player_index", 0)
+        if not players or idx >= len(players):
+            return None
+        return players[idx]
+
+    def _is_current_player(self, game: dict, wallet: str) -> bool:
+        cp = self._current_player(game)
+        if not cp:
+            return False
+        return self._same_wallet(cp.get("wallet", ""), wallet)
+
+    def _get_property(self, game: dict, space_id: int) -> dict:
+        return game.get("properties", {}).get(str(space_id), {"owner": None, "upgrade_level": 0, "mortgaged": False})
+
+    def _set_property(self, game: dict, space_id: int, prop: dict) -> None:
+        if "properties" not in game:
+            game["properties"] = {}
+        game["properties"][str(space_id)] = prop
+
+    def _record_move(self, game: dict, wallet: str, action: str, details: dict) -> None:
+        game["move_count"] = game.get("move_count", 0) + 1
+        move = {
+            "move_number": game["move_count"], "player": wallet, "action": action,
+            "details": details, "turn_number": game.get("turn_number", 1),
+            "timestamp": game["move_count"],
+        }
+        if "move_history" not in game:
+            game["move_history"] = []
+        game["move_history"].append(move)
+
+    def _pseudo_random(self, game: dict, seed_extra: str = "") -> int:
+        dice_history = game.get("dice_history", [])
+        prev_dice = str(dice_history[-1]) if dice_history else "0"
+        seed_str = (
+            str(game.get("game_id", "")) + str(game.get("move_count", 0)) +
+            str(game.get("turn_number", 1)) + str(game.get("current_player_index", 0)) +
+            str(len(dice_history)) + prev_dice + seed_extra
+        )
+        h = hashlib.sha256(seed_str.encode()).hexdigest()
+        return int(h, 16)
+
+    def _roll_die(self, game: dict, offset: int = 0) -> int:
+        return (self._pseudo_random(game, str(offset)) % 6) + 1
+
+    def _district_complete(self, game: dict, district: str, wallet: str) -> bool:
+        spaces = DISTRICTS.get(district, [])
+        if not spaces:
+            return False
+        for sid in spaces:
+            prop = self._get_property(game, sid)
+            owner = prop.get("owner") or ""
+            if not self._same_wallet(owner, wallet):
+                return False
+        return True
+
+    def _count_transit_owned(self, game: dict, wallet: str) -> int:
+        count = 0
+        for sid in DISTRICTS["Transit"]:
+            owner = (self._get_property(game, sid).get("owner") or "")
+            if self._same_wallet(owner, wallet):
+                count += 1
+        return count
+
+    def _count_utility_owned(self, game: dict, wallet: str) -> int:
+        count = 0
+        for sid in DISTRICTS["Utility"]:
+            owner = (self._get_property(game, sid).get("owner") or "")
+            if self._same_wallet(owner, wallet):
+                count += 1
+        return count
+
+    def _calc_rent(self, game: dict, space_id: int, dice_total: int) -> int:
+        if not self._is_ownable_space(space_id):
+            return 0
+        space = BOARD_SPACES[space_id]
+        prop = self._get_property(game, space_id)
+        owner = prop.get("owner")
+        if not owner or prop.get("mortgaged"):
+            return 0
+        sp_type = space["type"]
+        if sp_type == "transit":
+            count = self._count_transit_owned(game, owner)
+            return TRANSIT_RENT.get(count, 25)
+        if sp_type == "utility":
+            count = self._count_utility_owned(game, owner)
+            multiplier = 10 if count == 2 else 4
+            return dice_total * multiplier
+        if sp_type == "property":
+            level = prop.get("upgrade_level", 0)
+            rent_levels = space.get("rent_levels", [space.get("base_rent", 0)])
+            rent = rent_levels[min(level, len(rent_levels) - 1)]
+            if level == 0 and self._district_complete(game, space.get("district", ""), owner):
+                return rent * 2
+            return rent
+        return 0
+
+    def _transfer_balance(self, game: dict, from_wallet: str, to_wallet: str, amount: int) -> None:
+        if amount <= 0:
+            return
+        for p in game.get("players", []):
+            if self._same_wallet(p.get("wallet", ""), from_wallet):
+                p["balance"] -= amount
+            if self._same_wallet(p.get("wallet", ""), to_wallet):
+                p["balance"] += amount
+
+    def _player_total_liquidatable_assets(self, game: dict, player: dict) -> int:
+        total = player.get("balance", 0)
+        for sid in player.get("properties", []):
+            if self._is_ownable_space(sid):
+                prop = self._get_property(game, sid)
+                space = BOARD_SPACES[sid]
+                if not prop.get("mortgaged"):
+                    total += space.get("mortgage", 0)
+        return total
+
+    def _set_debt_resolution(self, game: dict, debtor: str, creditor: str, amount: int, reason: str) -> None:
+        if amount <= 0:
+            return
+        game["pending_action"] = "debt_resolution"
+        game["pending_action_data"] = {"debtor": debtor, "creditor": creditor, "amount_owed": amount, "reason": reason}
+
+    def _check_debt_after_payment(self, game: dict, debtor_wallet: str, creditor_wallet: str, reason: str) -> None:
+        debtor = self._get_player(game, debtor_wallet)
+        if not debtor:
+            return
+        if debtor.get("balance", 0) >= 0:
+            return
+        amount_owed = abs(debtor.get("balance", 0))
+        total_assets = self._player_total_liquidatable_assets(game, debtor)
+        if total_assets < 0:
+            self._set_debt_resolution(game, debtor_wallet, creditor_wallet, amount_owed, reason)
+        else:
+            game["pending_action"] = "asset_resolution"
+            game["pending_action_data"] = {
+                "debtor": debtor_wallet, "creditor": creditor_wallet,
+                "amount_owed": amount_owed, "reason": reason,
+                "message": "Player must mortgage assets, trade, or declare bankruptcy.",
+            }
+
+    def _advance_turn(self, game: dict) -> None:
+        active = self._active_players(game)
+        if len(active) <= 1:
+            if len(active) == 1:
+                game["winner"] = active[0]["wallet"]
+                game["status"] = "completed"
+                self._finalize_game(game)
+            return
+        players = game["players"]
+        n = len(players)
+        idx = game.get("current_player_index", 0)
+        for _ in range(n):
+            idx = (idx + 1) % n
+            if players[idx].get("status") == "active":
+                break
+        game["current_player_index"] = idx
+        game["turn_number"] = game.get("turn_number", 1) + 1
+        game["pending_action"] = "none"
+        game["pending_action_data"] = {}
+        game["pending_extra_turn"] = False
+        game["has_rolled_this_turn"] = False
+
+    def _finish_landing_action(self, game: dict) -> None:
+        if game.get("status") != "active":
+            return
+        if game.get("pending_action") in ("asset_resolution", "debt_resolution", "auction", "dispute_resolution"):
+            return
+        extra_turn = game.get("pending_extra_turn", False)
+        game["pending_action"] = "none"
+        game["pending_action_data"] = {}
+        if extra_turn:
+            game["has_rolled_this_turn"] = False
+            game["pending_extra_turn"] = False
+        else:
+            self._advance_turn(game)
+
+    def _send_to_lockup(self, game: dict, player: dict) -> None:
+        player["position"] = 10
+        player["in_lockup"] = True
+        player["lockup_turns"] = 0
+        player["doubles_count"] = 0
+        game["pending_extra_turn"] = False
+
+    def _move_player_to(self, game: dict, player: dict, new_pos: int) -> None:
+        old_pos = player.get("position", 0)
+        if new_pos <= old_pos and new_pos != 10:
+            player["balance"] += 200
+        player["position"] = new_pos
+
+    def _advance_player(self, game: dict, player: dict, spaces: int) -> None:
+        old_pos = player.get("position", 0)
+        new_pos = (old_pos + spaces) % 40
+        if spaces > 0 and new_pos < old_pos:
+            player["balance"] += 200
+        player["position"] = new_pos
+
+    def _move_to_next_district_space(self, game: dict, player: dict) -> None:
+        pos = player.get("position", 0)
+        for offset in range(1, 41):
+            target = (pos + offset) % 40
+            if BOARD_SPACES[target]["type"] == "property":
+                if target < pos:
+                    player["balance"] += 200
+                player["position"] = target
+                return
+
+    def _move_to_nearest_transit(self, game: dict, player: dict) -> None:
+        pos = player.get("position", 0)
+        nearest = DISTRICTS["Transit"][0]
+        for ts in sorted(DISTRICTS["Transit"]):
+            if ts > pos:
+                nearest = ts
+                break
+        if nearest <= pos:
+            player["balance"] += 200
+        player["position"] = nearest
+
+    def _apply_event(self, game: dict, player_idx: int, event: dict) -> None:
+        effect = event["effect"]
+        player = game["players"][player_idx]
+        etype = effect["type"]
+        if etype == "gain":
+            player["balance"] += effect["amount"]
+        elif etype == "lose":
+            player["balance"] -= effect["amount"]
+            self._check_debt_after_payment(game, player["wallet"], "treasury", "event_fee")
+        elif etype == "move_to":
+            self._move_player_to(game, player, effect["space"])
+        elif etype == "advance":
+            self._advance_player(game, player, effect["spaces"])
+        elif etype == "next_district":
+            self._move_to_next_district_space(game, player)
+        elif etype == "nearest_transit":
+            self._move_to_nearest_transit(game, player)
+        elif etype == "release_card":
+            player["release_cards"] = player.get("release_cards", 0) + 1
+        elif etype == "go_to_lockup":
+            self._send_to_lockup(game, player)
+        elif etype == "pay_per_upgrade":
+            upgrades = 0
+            for sid in player.get("properties", []):
+                upgrades += self._get_property(game, sid).get("upgrade_level", 0)
+            fee = upgrades * effect["amount"]
+            player["balance"] -= fee
+            self._check_debt_after_payment(game, player["wallet"], "treasury", "upgrade_event_fee")
+        elif etype == "collect_from_all":
+            for p in game["players"]:
+                if not self._same_wallet(p["wallet"], player["wallet"]) and p["status"] == "active":
+                    p["balance"] -= effect["amount"]
+                    player["balance"] += effect["amount"]
+                    self._check_debt_after_payment(game, p["wallet"], player["wallet"], "event_collect_from_all")
+        elif etype == "pay_to_all":
+            for p in game["players"]:
+                if not self._same_wallet(p["wallet"], player["wallet"]) and p["status"] == "active":
+                    player["balance"] -= effect["amount"]
+                    p["balance"] += effect["amount"]
+            self._check_debt_after_payment(game, player["wallet"], "multiple_players", "event_pay_to_all")
+
+    @gl.public.write
+    def create_game(self, max_players: int) -> str:
+        sender = self._sender()
+        if max_players < 2:
+            max_players = 2
+        if max_players > 6:
+            max_players = 6
+        game_id = f"genopoly_{hashlib.sha256(f'{sender}{int(self.total_games)}'.encode()).hexdigest()[:16]}"
+        first_player = {
+            "wallet": sender, "balance": 1500, "position": 0, "status": "active",
+            "in_lockup": False, "lockup_turns": 0, "release_cards": 0, "doubles_count": 0,
+            "properties": [], "total_rent_collected": 0, "total_rent_paid": 0,
+        }
+        game = {
+            "game_id": game_id, "name": GAME_NAME, "version": CONTRACT_VERSION,
+            "creator": sender, "status": "waiting", "players": [first_player],
+            "properties": {}, "current_player_index": 0, "turn_number": 1,
+            "pending_action": "none", "pending_action_data": {},
+            "pending_extra_turn": False, "has_rolled_this_turn": False,
+            "auction": None, "trade_offers": [], "last_dice_roll": None,
+            "winner": None, "max_players": max_players, "move_count": 0,
+            "move_history": [], "dice_history": [], "event_history": [],
+            "disputes": [], "created_at": int(self.total_games),
+        }
+        self._save_game(game_id, game)
+        self._add_open_game(game_id, json.dumps({
+            "game_id": game_id, "creator": sender, "max_players": max_players,
+            "players_joined": 1, "status": "waiting",
+        }))
+        stats = self._get_stats(sender)
+        stats["games_created"] = stats.get("games_created", 0) + 1
+        self._save_stats(sender, stats)
+        self.total_games = u256(int(self.total_games) + 1)
+        return game_id
+
+    @gl.public.write
+    def join_game(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "waiting":
+            return False
+        if len(game.get("players", [])) >= game.get("max_players", 2):
+            return False
+        for p in game.get("players", []):
+            if self._same_wallet(p["wallet"], sender):
+                return True
+        player = {
+            "wallet": sender, "balance": 1500, "position": 0, "status": "active",
+            "in_lockup": False, "lockup_turns": 0, "release_cards": 0, "doubles_count": 0,
+            "properties": [], "total_rent_collected": 0, "total_rent_paid": 0,
+        }
+        game["players"].append(player)
+        self._add_open_game(game_id, json.dumps({
+            "game_id": game_id, "creator": game.get("creator", ""),
+            "max_players": game.get("max_players", 2),
+            "players_joined": len(game["players"]), "status": "waiting",
+        }))
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def start_game(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "waiting":
+            return False
+        if not self._same_wallet(game.get("creator", ""), sender):
+            return False
+        if len(game.get("players", [])) < 2:
+            return False
+        game["status"] = "active"
+        game["turn_number"] = 1
+        game["current_player_index"] = 0
+        game["pending_action"] = "none"
+        game["pending_action_data"] = {}
+        game["pending_extra_turn"] = False
+        game["has_rolled_this_turn"] = False
+        self._remove_open_game(game_id)
+        self._record_move(game, sender, "start_game", {"players": len(game["players"])})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def roll_dice(self, game_id: str) -> str:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game:
+            return json.dumps({"error": "Game not found"})
+        if game.get("status") != "active":
+            return json.dumps({"error": "Game not active"})
+        if not self._is_current_player(game, sender):
+            return json.dumps({"error": "Not your turn"})
+        if game.get("pending_action") not in ("none",):
+            return json.dumps({"error": "Action pending", "pending": game.get("pending_action")})
+        if game.get("has_rolled_this_turn", False):
+            return json.dumps({"error": "Already rolled this turn"})
+        cp = self._current_player(game)
+        if not cp or cp.get("status") != "active":
+            return json.dumps({"error": "Invalid current player"})
+        die1 = self._roll_die(game, 0)
+        die2 = self._roll_die(game, 1)
+        total = die1 + die2
+        is_doubles = die1 == die2
+        dice_roll = {
+            "die1": die1, "die2": die2, "total": total, "is_doubles": is_doubles,
+            "player": sender, "turn_number": game.get("turn_number", 1),
+            "move_number": game.get("move_count", 0) + 1,
+        }
+        game["last_dice_roll"] = dice_roll
+        game["dice_history"] = game.get("dice_history", []) + [dice_roll]
+        game["has_rolled_this_turn"] = True
+        if cp.get("in_lockup"):
+            if is_doubles:
+                cp["in_lockup"] = False
+                cp["lockup_turns"] = 0
+                cp["doubles_count"] = 0
+            else:
+                cp["lockup_turns"] = cp.get("lockup_turns", 0) + 1
+                if cp["lockup_turns"] >= 3:
+                    cp["balance"] -= 50
+                    cp["in_lockup"] = False
+                    cp["lockup_turns"] = 0
+                    self._check_debt_after_payment(game, sender, "treasury", "lockup_fee")
+                self._record_move(game, sender, "roll_dice_lockup", {
+                    "die1": die1, "die2": die2, "still_locked": cp.get("in_lockup"),
+                })
+                if game.get("pending_action") == "none":
+                    self._advance_turn(game)
+                self._save_game(game_id, game)
+                return json.dumps(dice_roll)
+        if is_doubles:
+            cp["doubles_count"] = cp.get("doubles_count", 0) + 1
+            if cp["doubles_count"] >= 3:
+                self._send_to_lockup(game, cp)
+                self._record_move(game, sender, "go_to_lockup_third_doubles", {"die1": die1, "die2": die2})
+                self._advance_turn(game)
+                self._save_game(game_id, game)
+                return json.dumps(dice_roll)
+            game["pending_extra_turn"] = True
+        else:
+            cp["doubles_count"] = 0
+            game["pending_extra_turn"] = False
+        old_pos = cp.get("position", 0)
+        new_pos = (old_pos + total) % 40
+        if new_pos < old_pos or new_pos == 0:
+            cp["balance"] += 200
+        cp["position"] = new_pos
+        self._record_move(game, sender, "roll_dice", {
+            "die1": die1, "die2": die2, "from": old_pos, "to": new_pos,
+        })
+        self._handle_landing(game, sender, new_pos, total)
+        self._save_game(game_id, game)
+        return json.dumps(dice_roll)
+
+    def _handle_landing(self, game: dict, wallet: str, space_id: int, dice_total: int) -> None:
+        player = self._get_player(game, wallet)
+        if not player:
+            return
+        space = BOARD_SPACES[space_id]
+        sp_type = space["type"]
+        if sp_type == "go_to_lockup":
+            self._send_to_lockup(game, player)
+            self._record_move(game, wallet, "go_to_lockup_space", {"space_id": space_id})
+            self._advance_turn(game)
+            return
+        if sp_type in ("property", "transit", "utility"):
+            prop = self._get_property(game, space_id)
+            owner = prop.get("owner")
+            if owner is None:
+                game["pending_action"] = "buy_or_auction"
+                game["pending_action_data"] = {"space_id": space_id}
+                return
+            if self._same_wallet(owner, wallet):
+                self._finish_landing_action(game)
+                return
+            if prop.get("mortgaged"):
+                self._finish_landing_action(game)
+                return
+            owner_player = self._get_player(game, owner)
+            if owner_player and owner_player.get("status") == "active":
+                rent = self._calc_rent(game, space_id, dice_total)
+                if rent > 0:
+                    self._transfer_balance(game, wallet, owner, rent)
+                    player["total_rent_paid"] = player.get("total_rent_paid", 0) + rent
+                    owner_player["total_rent_collected"] = owner_player.get("total_rent_collected", 0) + rent
+                    self._record_move(game, wallet, "pay_rent", {"space_id": space_id, "rent": rent, "to": owner})
+                    self._check_debt_after_payment(game, wallet, owner, "rent")
+            if game.get("pending_action") == "none":
+                self._finish_landing_action(game)
+            return
+        if sp_type == "tax":
+            amount = space.get("amount", 0)
+            player["balance"] -= amount
+            self._record_move(game, wallet, "pay_tax", {"space_id": space_id, "amount": amount})
+            self._check_debt_after_payment(game, wallet, "treasury", "tax")
+            if game.get("pending_action") == "none":
+                self._finish_landing_action(game)
+            return
+        if sp_type == "market_event":
+            rand = self._pseudo_random(game, "market_event") % len(MARKET_EVENTS)
+            event = MARKET_EVENTS[rand]
+            idx = self._player_index(game, wallet)
+            self._apply_event(game, idx, event)
+            game["event_history"] = game.get("event_history", []) + [{
+                "move_number": game.get("move_count", 0), "player": wallet,
+                "event_type": "market_event", "card_text": event["text"], "effect": event["effect"],
+            }]
+            self._record_move(game, wallet, "market_event", {"card": event["text"]})
+            if game.get("pending_action") == "none":
+                self._finish_landing_action(game)
+            return
+        if sp_type == "city_event":
+            rand = self._pseudo_random(game, "city_event") % len(CITY_EVENTS)
+            event = CITY_EVENTS[rand]
+            idx = self._player_index(game, wallet)
+            self._apply_event(game, idx, event)
+            game["event_history"] = game.get("event_history", []) + [{
+                "move_number": game.get("move_count", 0), "player": wallet,
+                "event_type": "city_event", "card_text": event["text"], "effect": event["effect"],
+            }]
+            self._record_move(game, wallet, "city_event", {"card": event["text"]})
+            if game.get("pending_action") == "none":
+                self._finish_landing_action(game)
+            return
+        self._finish_landing_action(game)
+
+    @gl.public.write
+    def buy_property(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        if game.get("pending_action") != "buy_or_auction":
+            return False
+        if not self._is_current_player(game, sender):
+            return False
+        space_id = game.get("pending_action_data", {}).get("space_id", -1)
+        if not self._is_ownable_space(space_id):
+            return False
+        cp = self._current_player(game)
+        space = BOARD_SPACES[space_id]
+        price = space.get("price", 0)
+        prop = self._get_property(game, space_id)
+        if prop.get("owner") is not None:
+            return False
+        if cp.get("balance", 0) < price:
+            return False
+        cp["balance"] -= price
+        cp["properties"] = cp.get("properties", []) + [space_id]
+        self._set_property(game, space_id, {"owner": sender, "upgrade_level": 0, "mortgaged": False})
+        self._record_move(game, sender, "buy_property", {"space_id": space_id, "price": price})
+        self._finish_landing_action(game)
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def decline_buy_property(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        if game.get("pending_action") != "buy_or_auction":
+            return False
+        if not self._is_current_player(game, sender):
+            return False
+        space_id = game.get("pending_action_data", {}).get("space_id", -1)
+        if not self._is_ownable_space(space_id):
+            return False
+        participants = [p["wallet"] for p in self._active_players(game)]
+        game["auction"] = {
+            "active": True, "space_id": space_id, "highest_bid": 0, "highest_bidder": None,
+            "participants": participants, "passed_players": [], "created_turn": game.get("turn_number", 1),
+        }
+        game["pending_action"] = "auction"
+        game["pending_action_data"] = {"space_id": space_id}
+        self._record_move(game, sender, "decline_buy_start_auction", {"space_id": space_id, "participants": participants})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def place_auction_bid(self, game_id: str, amount: int) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        auction = game.get("auction")
+        if not auction or not auction.get("active"):
+            return False
+        if sender not in auction.get("participants", []):
+            return False
+        if sender in auction.get("passed_players", []):
+            return False
+        player = self._get_player(game, sender)
+        if not player or player.get("status") != "active":
+            return False
+        if amount <= auction.get("highest_bid", 0):
+            return False
+        if amount > player.get("balance", 0):
+            return False
+        auction["highest_bid"] = amount
+        auction["highest_bidder"] = sender
+        self._record_move(game, sender, "auction_bid", {"space_id": auction.get("space_id"), "amount": amount})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def pass_auction(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        auction = game.get("auction")
+        if not auction or not auction.get("active"):
+            return False
+        if sender not in auction.get("participants", []):
+            return False
+        if sender not in auction.get("passed_players", []):
+            auction["passed_players"].append(sender)
+        self._record_move(game, sender, "auction_pass", {"space_id": auction.get("space_id")})
+        remaining = [p for p in auction.get("participants", []) if p not in auction.get("passed_players", [])]
+        if len(remaining) <= 1:
+            self._resolve_auction_internal(game)
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def resolve_auction(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        auction = game.get("auction")
+        if not auction or not auction.get("active"):
+            return False
+        if sender not in auction.get("participants", []):
+            return False
+        participants = auction.get("participants", [])
+        passed = auction.get("passed_players", [])
+        remaining = [p for p in participants if p not in passed]
+        if len(remaining) > 1:
+            return False
+        self._resolve_auction_internal(game)
+        self._save_game(game_id, game)
+        return True
+
+    def _resolve_auction_internal(self, game: dict) -> None:
+        auction = game.get("auction")
+        if not auction:
+            return
+        winner = auction.get("highest_bidder")
+        highest_bid = auction.get("highest_bid", 0)
+        space_id = auction.get("space_id", -1)
+        if winner and highest_bid > 0 and self._is_ownable_space(space_id):
+            player = self._get_player(game, winner)
+            prop = self._get_property(game, space_id)
+            if player and prop.get("owner") is None and player.get("balance", 0) >= highest_bid:
+                player["balance"] -= highest_bid
+                player["properties"] = player.get("properties", []) + [space_id]
+                self._set_property(game, space_id, {"owner": winner, "upgrade_level": 0, "mortgaged": False})
+                self._record_move(game, winner, "auction_won", {"space_id": space_id, "bid": highest_bid})
+                stats = self._get_stats(winner)
+                stats["auctions_won"] = stats.get("auctions_won", 0) + 1
+                self._save_stats(winner, stats)
+        else:
+            self._record_move(game, "system", "auction_ended_no_winner", {"space_id": space_id})
+        game["auction"] = None
+        game["pending_action"] = "none"
+        game["pending_action_data"] = {}
+        self._finish_landing_action(game)
+
+    @gl.public.write
+    def upgrade_property(self, game_id: str, space_id: int) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        if not self._is_valid_space(space_id):
+            return False
+        space = BOARD_SPACES[space_id]
+        if space.get("type") != "property":
+            return False
+        prop = self._get_property(game, space_id)
+        owner = prop.get("owner") or ""
+        if not self._same_wallet(owner, sender):
+            return False
+        if prop.get("mortgaged"):
+            return False
+        level = prop.get("upgrade_level", 0)
+        if level >= 5:
+            return False
+        district = space.get("district", "")
+        if not self._district_complete(game, district, sender):
+            return False
+        player = self._get_player(game, sender)
+        if not player:
+            return False
+        upgrade_cost = space.get("price", 0) // 2
+        if player.get("balance", 0) < upgrade_cost:
+            return False
+        player["balance"] -= upgrade_cost
+        prop["upgrade_level"] = level + 1
+        self._set_property(game, space_id, prop)
+        self._record_move(game, sender, "upgrade_property", {"space_id": space_id, "new_level": level + 1, "cost": upgrade_cost})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def downgrade_property(self, game_id: str, space_id: int) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        if not self._is_valid_space(space_id):
+            return False
+        space = BOARD_SPACES[space_id]
+        if space.get("type") != "property":
+            return False
+        prop = self._get_property(game, space_id)
+        owner = prop.get("owner") or ""
+        if not self._same_wallet(owner, sender):
+            return False
+        level = prop.get("upgrade_level", 0)
+        if level <= 0:
+            return False
+        player = self._get_player(game, sender)
+        if not player:
+            return False
+        refund = (space.get("price", 0) // 2) // 2
+        prop["upgrade_level"] = level - 1
+        player["balance"] += refund
+        self._set_property(game, space_id, prop)
+        self._record_move(game, sender, "downgrade_property", {"space_id": space_id, "new_level": level - 1, "refund": refund})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def mortgage_property(self, game_id: str, space_id: int) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        if not self._is_ownable_space(space_id):
+            return False
+        prop = self._get_property(game, space_id)
+        owner = prop.get("owner") or ""
+        if not self._same_wallet(owner, sender):
+            return False
+        if prop.get("mortgaged"):
+            return False
+        if prop.get("upgrade_level", 0) > 0:
+            return False
+        space = BOARD_SPACES[space_id]
+        mortgage_value = space.get("mortgage", 0)
+        player = self._get_player(game, sender)
+        if not player:
+            return False
+        player["balance"] += mortgage_value
+        prop["mortgaged"] = True
+        self._set_property(game, space_id, prop)
+        self._record_move(game, sender, "mortgage_property", {"space_id": space_id, "value": mortgage_value})
+        if game.get("pending_action") in ("asset_resolution", "debt_resolution"):
+            if player.get("balance", 0) >= 0:
+                game["pending_action"] = "none"
+                game["pending_action_data"] = {}
+                self._finish_landing_action(game)
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def unmortgage_property(self, game_id: str, space_id: int) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        if not self._is_ownable_space(space_id):
+            return False
+        prop = self._get_property(game, space_id)
+        owner = prop.get("owner") or ""
+        if not self._same_wallet(owner, sender):
+            return False
+        if not prop.get("mortgaged"):
+            return False
+        space = BOARD_SPACES[space_id]
+        cost = space.get("mortgage", 0) * 11 // 10
+        player = self._get_player(game, sender)
+        if not player or player.get("balance", 0) < cost:
+            return False
+        player["balance"] -= cost
+        prop["mortgaged"] = False
+        self._set_property(game, space_id, prop)
+        self._record_move(game, sender, "unmortgage_property", {"space_id": space_id, "cost": cost})
+        self._save_game(game_id, game)
+        return True
+
+    def _valid_unique_properties(self, props: list[int]) -> bool:
+        seen = []
+        for sid in props:
+            if not self._is_ownable_space(sid):
+                return False
+            if sid in seen:
+                return False
+            seen.append(sid)
+        return True
+
+    def _player_owns_all(self, game: dict, wallet: str, props: list[int]) -> bool:
+        for sid in props:
+            owner = (self._get_property(game, sid).get("owner") or "")
+            if not self._same_wallet(owner, wallet):
+                return False
+        return True
+
+    @gl.public.write
+    def create_trade_offer(self, game_id: str, to_player: str, offered_cash: int, requested_cash: int, offered_properties: list[int], requested_properties: list[int]) -> str:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return ""
+        if offered_cash < 0 or requested_cash < 0:
+            return ""
+        from_p = self._get_player(game, sender)
+        to_p = self._get_player(game, to_player)
+        if not from_p or not to_p:
+            return ""
+        if from_p.get("status") != "active" or to_p.get("status") != "active":
+            return ""
+        if not self._valid_unique_properties(offered_properties):
+            return ""
+        if not self._valid_unique_properties(requested_properties):
+            return ""
+        if not self._player_owns_all(game, sender, offered_properties):
+            return ""
+        if not self._player_owns_all(game, to_player, requested_properties):
+            return ""
+        if from_p.get("balance", 0) < offered_cash:
+            return ""
+        trade_id = hashlib.sha256(f"{game_id}{sender}{to_player}{len(game.get('trade_offers', []))}{game.get('move_count', 0)}".encode()).hexdigest()[:12]
+        trade = {
+            "id": trade_id, "from_player": sender, "to_player": to_player,
+            "offered_cash": offered_cash, "requested_cash": requested_cash,
+            "offered_properties": list(offered_properties),
+            "requested_properties": list(requested_properties),
+            "status": "pending", "created_at": game.get("move_count", 0),
+        }
+        game["trade_offers"] = game.get("trade_offers", []) + [trade]
+        self._record_move(game, sender, "create_trade_offer", {"trade_id": trade_id, "to": to_player})
+        self._save_game(game_id, game)
+        return trade_id
+
+    @gl.public.write
+    def accept_trade_offer(self, game_id: str, trade_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        trade = None
+        for t in game.get("trade_offers", []):
+            if t.get("id") == trade_id:
+                trade = t
+                break
+        if not trade or trade.get("status") != "pending":
+            return False
+        if not self._same_wallet(trade.get("to_player", ""), sender):
+            return False
+        from_wallet = trade["from_player"]
+        to_wallet = trade["to_player"]
+        from_p = self._get_player(game, from_wallet)
+        to_p = self._get_player(game, to_wallet)
+        if not from_p or not to_p:
+            return False
+        if from_p.get("balance", 0) < trade.get("offered_cash", 0):
+            return False
+        if to_p.get("balance", 0) < trade.get("requested_cash", 0):
+            return False
+        if not self._player_owns_all(game, from_wallet, trade.get("offered_properties", [])):
+            return False
+        if not self._player_owns_all(game, to_wallet, trade.get("requested_properties", [])):
+            return False
+        offered_cash = trade.get("offered_cash", 0)
+        requested_cash = trade.get("requested_cash", 0)
+        from_p["balance"] -= offered_cash
+        to_p["balance"] += offered_cash
+        to_p["balance"] -= requested_cash
+        from_p["balance"] += requested_cash
+        for sid in trade.get("offered_properties", []):
+            prop = self._get_property(game, sid)
+            prop["owner"] = to_wallet
+            self._set_property(game, sid, prop)
+            if sid in from_p.get("properties", []):
+                from_p["properties"].remove(sid)
+            if sid not in to_p.get("properties", []):
+                to_p["properties"] = to_p.get("properties", []) + [sid]
+        for sid in trade.get("requested_properties", []):
+            prop = self._get_property(game, sid)
+            prop["owner"] = from_wallet
+            self._set_property(game, sid, prop)
+            if sid in to_p.get("properties", []):
+                to_p["properties"].remove(sid)
+            if sid not in from_p.get("properties", []):
+                from_p["properties"] = from_p.get("properties", []) + [sid]
+        trade["status"] = "accepted"
+        stats_from = self._get_stats(from_wallet)
+        stats_to = self._get_stats(to_wallet)
+        stats_from["trades_completed"] = stats_from.get("trades_completed", 0) + 1
+        stats_to["trades_completed"] = stats_to.get("trades_completed", 0) + 1
+        self._save_stats(from_wallet, stats_from)
+        self._save_stats(to_wallet, stats_to)
+        self._record_move(game, sender, "accept_trade_offer", {"trade_id": trade_id})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def cancel_trade_offer(self, game_id: str, trade_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game:
+            return False
+        for t in game.get("trade_offers", []):
+            if t.get("id") == trade_id and self._same_wallet(t.get("from_player", ""), sender):
+                if t.get("status") == "pending":
+                    t["status"] = "cancelled"
+                    self._record_move(game, sender, "cancel_trade_offer", {"trade_id": trade_id})
+                    self._save_game(game_id, game)
+                    return True
+        return False
+
+    @gl.public.write
+    def pay_lockup_release(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        player = self._get_player(game, sender)
+        if not player or not player.get("in_lockup"):
+            return False
+        if player.get("balance", 0) < 50:
+            return False
+        player["balance"] -= 50
+        player["in_lockup"] = False
+        player["lockup_turns"] = 0
+        self._record_move(game, sender, "pay_lockup_release", {"fee": 50})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def use_release_card(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        player = self._get_player(game, sender)
+        if not player or not player.get("in_lockup"):
+            return False
+        if player.get("release_cards", 0) < 1:
+            return False
+        player["release_cards"] -= 1
+        player["in_lockup"] = False
+        player["lockup_turns"] = 0
+        self._record_move(game, sender, "use_release_card", {})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def declare_bankruptcy(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        player = self._get_player(game, sender)
+        if not player:
+            return False
+        pending = game.get("pending_action")
+        pdata = game.get("pending_action_data", {})
+        if pending in ("asset_resolution", "debt_resolution"):
+            if not self._same_wallet(pdata.get("debtor", ""), sender):
+                return False
+        creditor = pdata.get("creditor", "treasury")
+        player["status"] = "bankrupt"
+        if creditor not in ("treasury", "multiple_players") and self._get_player(game, creditor):
+            creditor_player = self._get_player(game, creditor)
+            for sid in player.get("properties", []):
+                prop = self._get_property(game, sid)
+                prop["owner"] = creditor
+                self._set_property(game, sid, prop)
+                if sid not in creditor_player.get("properties", []):
+                    creditor_player["properties"] = creditor_player.get("properties", []) + [sid]
+        else:
+            for sid in player.get("properties", []):
+                self._set_property(game, sid, {"owner": None, "upgrade_level": 0, "mortgaged": False})
+        player["properties"] = []
+        stats = self._get_stats(sender)
+        stats["bankruptcies"] = stats.get("bankruptcies", 0) + 1
+        self._save_stats(sender, stats)
+        self._record_move(game, sender, "declare_bankruptcy", {"creditor": creditor})
+        game["pending_action"] = "none"
+        game["pending_action_data"] = {}
+        active = self._active_players(game)
+        if len(active) == 1:
+            game["winner"] = active[0]["wallet"]
+            game["status"] = "completed"
+            self._finalize_game(game)
+        else:
+            cp = self._current_player(game)
+            if cp and self._same_wallet(cp.get("wallet", ""), sender):
+                self._advance_turn(game)
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def resign_game(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") not in ("waiting", "active"):
+            return False
+        player = self._get_player(game, sender)
+        if not player:
+            return False
+        player["status"] = "resigned"
+        for sid in player.get("properties", []):
+            self._set_property(game, sid, {"owner": None, "upgrade_level": 0, "mortgaged": False})
+        player["properties"] = []
+        self._record_move(game, sender, "resign_game", {})
+        if game.get("status") == "waiting":
+            if self._same_wallet(game.get("creator", ""), sender):
+                game["status"] = "cancelled"
+                self._remove_open_game(game_id)
+        else:
+            active = self._active_players(game)
+            if len(active) == 1:
+                game["winner"] = active[0]["wallet"]
+                game["status"] = "completed"
+                self._finalize_game(game)
+            else:
+                cp = self._current_player(game)
+                if cp and self._same_wallet(cp.get("wallet", ""), sender):
+                    self._advance_turn(game)
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def cancel_game(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game:
+            return False
+        if game.get("status") != "waiting":
+            return False
+        if not self._same_wallet(game.get("creator", ""), sender):
+            return False
+        game["status"] = "cancelled"
+        self._remove_open_game(game_id)
+        self._record_move(game, sender, "cancel_game", {})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def end_turn(self, game_id: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        if not self._is_current_player(game, sender):
+            return False
+        if game.get("pending_action") != "none":
+            return False
+        if not game.get("has_rolled_this_turn", False):
+            return False
+        self._record_move(game, sender, "end_turn", {})
+        self._advance_turn(game)
+        self._save_game(game_id, game)
+        return True
+
+    def _finalize_game(self, game: dict) -> None:
+        winner = game.get("winner", "")
+        for p in game.get("players", []):
+            stats = self._get_stats(p["wallet"])
+            stats["games_played"] = stats.get("games_played", 0) + 1
+            if self._same_wallet(p["wallet"], winner):
+                stats["wins"] = stats.get("wins", 0) + 1
+            else:
+                stats["losses"] = stats.get("losses", 0) + 1
+            stats["total_rent_collected"] = stats.get("total_rent_collected", 0) + p.get("total_rent_collected", 0)
+            stats["total_rent_paid"] = stats.get("total_rent_paid", 0) + p.get("total_rent_paid", 0)
+            self._save_stats(p["wallet"], stats)
+        game_id = game.get("game_id", "")
+        self._add_recent_game(game_id, json.dumps({
+            "game_id": game_id, "winner": winner,
+            "players": [p["wallet"] for p in game.get("players", [])],
+            "move_count": game.get("move_count", 0), "status": "completed",
+        }))
+
+    @gl.public.write
+    def raise_dispute(self, game_id: str, reason: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game or game.get("status") != "active":
+            return False
+        player = self._get_player(game, sender)
+        if not player:
+            return False
+        dispute_id = hashlib.sha256(f"{game_id}{sender}{reason}{game.get('move_count', 0)}".encode()).hexdigest()[:12]
+        dispute = {
+            "id": dispute_id, "raised_by": sender, "reason": reason, "status": "open",
+            "raised_at_move": game.get("move_count", 0),
+            "last_dice_roll": game.get("last_dice_roll"),
+            "current_player_index": game.get("current_player_index", 0),
+            "pending_action": game.get("pending_action", "none"),
+            "pending_action_data": game.get("pending_action_data", {}),
+        }
+        game["disputes"] = game.get("disputes", []) + [dispute]
+        game["status"] = "disputed"
+        game["pending_action"] = "dispute_resolution"
+        game["pending_action_data"] = {"dispute_id": dispute_id, "raised_by": sender, "reason": reason}
+        self._record_move(game, sender, "raise_dispute", {"dispute_id": dispute_id, "reason": reason})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.write
+    def resolve_dispute(self, game_id: str, dispute_id: str, decision: str) -> bool:
+        sender = self._sender()
+        game = self._get_game(game_id)
+        if not game:
+            return False
+        if not self._same_wallet(game.get("creator", ""), sender):
+            return False
+        if game.get("status") != "disputed":
+            return False
+        found = False
+        for d in game.get("disputes", []):
+            if d.get("id") == dispute_id and d.get("status") == "open":
+                d["status"] = "resolved"
+                d["decision"] = decision
+                d["resolved_by"] = sender
+                d["resolved_at_move"] = game.get("move_count", 0)
+                found = True
+                break
+        if not found:
+            return False
+        game["status"] = "active"
+        game["pending_action"] = "none"
+        game["pending_action_data"] = {}
+        self._record_move(game, sender, "resolve_dispute", {"dispute_id": dispute_id, "decision": decision})
+        self._save_game(game_id, game)
+        return True
+
+    @gl.public.view
+    def get_contract_info(self) -> str:
+        return json.dumps({"name": GAME_NAME, "version": CONTRACT_VERSION, "total_games": int(self.total_games)})
+
+    @gl.public.view
+    def get_total_games(self) -> int:
+        return int(self.total_games)
+
+    @gl.public.view
+    def get_game(self, game_id: str) -> str:
+        raw = self._tm_get(self.games, game_id)
+        return raw if raw else json.dumps({})
+
+    @gl.public.view
+    def get_status(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return game.get("status", "not_found")
+
+    @gl.public.view
+    def get_board(self, game_id: str) -> str:
+        return json.dumps(BOARD_SPACES)
+
+    @gl.public.view
+    def get_players(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return json.dumps(game.get("players", []))
+
+    @gl.public.view
+    def get_current_player(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        cp = self._current_player(game)
+        return json.dumps(cp or {})
+
+    @gl.public.view
+    def get_player_state(self, game_id: str, wallet: str) -> str:
+        game = self._get_game(game_id)
+        player = self._get_player(game, wallet)
+        return json.dumps(player or {})
+
+    @gl.public.view
+    def get_property_state(self, game_id: str, space_id: int) -> str:
+        game = self._get_game(game_id)
+        if not self._is_valid_space(space_id):
+            return json.dumps({})
+        return json.dumps(self._get_property(game, space_id))
+
+    @gl.public.view
+    def get_pending_action(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return json.dumps({
+            "action": game.get("pending_action", "none"),
+            "data": game.get("pending_action_data", {}),
+            "pending_extra_turn": game.get("pending_extra_turn", False),
+            "has_rolled_this_turn": game.get("has_rolled_this_turn", False),
+        })
+
+    @gl.public.view
+    def get_auction(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return json.dumps(game.get("auction"))
+
+    @gl.public.view
+    def get_trade_offers(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return json.dumps(game.get("trade_offers", []))
+
+    @gl.public.view
+    def get_move_history(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return json.dumps(game.get("move_history", []))
+
+    @gl.public.view
+    def get_dice_history(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return json.dumps(game.get("dice_history", []))
+
+    @gl.public.view
+    def get_event_history(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return json.dumps(game.get("event_history", []))
+
+    @gl.public.view
+    def get_disputes(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return json.dumps(game.get("disputes", []))
+
+    @gl.public.view
+    def get_winner(self, game_id: str) -> str:
+        game = self._get_game(game_id)
+        return game.get("winner") or ""
+
+    @gl.public.view
+    def get_player_stats(self, wallet: str) -> str:
+        return json.dumps(self._get_stats(wallet))
+
+    @gl.public.view
+    def get_leaderboard(self) -> str:
+        results = []
+        for i in range(len(self.stats_keys)):
+            k = self.stats_keys[i]
+            raw = self._tm_get(self.player_stats, k)
+            if raw:
+                results.append(json.loads(raw))
+        results.sort(key=lambda x: x.get("wins", 0), reverse=True)
+        return json.dumps(results[:50])
+
+    @gl.public.view
+    def get_recent_games(self) -> str:
+        results = []
+        for i in range(len(self.recent_keys)):
+            k = self.recent_keys[i]
+            raw = self._tm_get(self.recent_games, k)
+            if raw:
+                results.append(json.loads(raw))
+        return json.dumps(results[-20:])
+
+    @gl.public.view
+    def get_open_games(self) -> str:
+        results = []
+        for i in range(len(self.open_keys)):
+            k = self.open_keys[i]
+            raw = self._tm_get(self.open_games, k)
+            if raw:
+                results.append(json.loads(raw))
+        return json.dumps(results)
+
+    @gl.public.view
+    def get_space(self, space_id: int) -> str:
+        if not self._is_valid_space(space_id):
+            return json.dumps({})
+        return json.dumps(BOARD_SPACES[space_id])
