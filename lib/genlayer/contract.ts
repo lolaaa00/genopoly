@@ -19,20 +19,37 @@ async function callView(method: string, args: unknown[] = []): Promise<unknown> 
   }
 }
 
-async function callWrite(method: string, sender: string, args: unknown[] = []): Promise<{ hash?: string; error?: string }> {
+async function callWrite(method: string, sender: string, args: unknown[] = []): Promise<{ hash?: string; result?: unknown; error?: string }> {
   const client = await getGenLayerClient();
-  if (!client) return { error: "Client not available" };
+  if (!client) return { error: "GenLayer client unavailable — is your wallet connected?" };
   try {
-    const c = client as { writeContract: (opts: unknown) => Promise<{ hash?: string }> };
-    const result = await c.writeContract({
+    const c = client as {
+      writeContract: (opts: unknown) => Promise<unknown>;
+      waitForTransactionReceipt?: (opts: { hash: string }) => Promise<unknown>;
+    };
+    const writeResult = await c.writeContract({
       address: getContractAddress(),
       functionName: method,
       args,
-      account: sender,
+      account: sender as `0x${string}`,
+      value: BigInt(0),
     });
-    return result ?? {};
+    const hash =
+      typeof writeResult === "string"
+        ? writeResult
+        : (writeResult as { hash?: string } | null)?.hash;
+    let result: unknown = writeResult;
+    if (hash && c.waitForTransactionReceipt) {
+      try {
+        const receipt = await c.waitForTransactionReceipt({ hash });
+        const r = receipt as { result?: unknown; returnValue?: unknown };
+        result = r.result ?? r.returnValue ?? receipt;
+      } catch { /* fall back to writeResult */ }
+    }
+    return { hash, result };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
+    console.error(`GenLayer write ${method} error:`, e);
     return { error: msg };
   }
 }

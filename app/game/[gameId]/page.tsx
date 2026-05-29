@@ -24,7 +24,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
   const [moves, setMoves] = useState<MoveHistoryItem[]>([]);
   const [showBuyModal, setShowBuyModal] = useState(false);
 
-  useGameState(gameId);
+  const gameQuery = useGameState(gameId);
 
   useEffect(() => {
     if (address) setMyWallet(address);
@@ -63,11 +63,26 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
   }
 
   if (!gameState) {
+    // After the first fetch settles with no data, the game ID is invalid / not on-chain
+    const isMissing = gameQuery.isFetched && !gameQuery.isFetching && !gameQuery.data;
     return (
       <div style={{ minHeight: "calc(100vh - 60px)", background: "#071013", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center", color: "#77918B" }}>
-          <div style={{ width: 32, height: 32, border: "3px solid #D98236", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
-          Loading game state from GenLayer...
+        <div style={{ textAlign: "center", color: "#77918B", maxWidth: 420, padding: 24 }}>
+          {isMissing ? (
+            <>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+              <div style={{ color: "#F6FAF9", fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Game not found</div>
+              <div style={{ fontSize: 14, color: "#B3C7C3", marginBottom: 20 }}>
+                No on-chain game matches <code style={{ color: "#D98236" }}>{gameId}</code>. It may have been cancelled, or the link is stale.
+              </div>
+              <a href="/create" style={{ color: "#2DD4BF", fontWeight: 600, fontSize: 14 }}>← Create a new game</a>
+            </>
+          ) : (
+            <>
+              <div style={{ width: 32, height: 32, border: "3px solid #D98236", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
+              Loading game state from GenLayer...
+            </>
+          )}
         </div>
       </div>
     );

@@ -4,8 +4,7 @@ import { useRouter } from "next/navigation";
 import { useWallet } from "@/hooks/useWallet";
 import WalletButton from "@/components/wallet/WalletButton";
 import Button from "@/components/ui/Button";
-import { createGame } from "@/lib/genlayer/contract";
-import { generateId } from "@/lib/utils";
+import { createGame, getOpenGames } from "@/lib/genlayer/contract";
 import { Users, Lock, Globe, ChevronRight } from "lucide-react";
 
 export default function CreatePage() {
@@ -21,8 +20,39 @@ export default function CreatePage() {
     setLoading(true);
     setError("");
     try {
-      const gameId = generateId();
-      await createGame(address, maxPlayers);
+      const writeRes = await createGame(address, maxPlayers);
+      if (writeRes.error) throw new Error(writeRes.error);
+
+      // Prefer the contract's returned gameId. Fall back to scanning open games for one we just created.
+      let gameId: string | undefined;
+      const r = writeRes.result;
+      if (typeof r === "string") {
+        gameId = r;
+      } else if (r && typeof r === "object" && "result" in (r as Record<string, unknown>)) {
+        const inner = (r as { result: unknown }).result;
+        if (typeof inner === "string") gameId = inner;
+      }
+
+      if (!gameId) {
+        // Fallback: poll get_open_games for one created by us, retry up to ~10s
+        for (let i = 0; i < 10 && !gameId; i++) {
+          await new Promise((res) => setTimeout(res, 1000));
+          const raw = await getOpenGames();
+          const list = typeof raw === "string" ? JSON.parse(raw) : raw;
+          if (Array.isArray(list)) {
+            const mine = list
+              .map((x) => (typeof x === "string" ? JSON.parse(x) : x))
+              .filter((g: { creator?: string }) => g?.creator?.toLowerCase() === address.toLowerCase());
+            // pick the most recent if multiple
+            const last = mine[mine.length - 1] as { game_id?: string } | undefined;
+            if (last?.game_id) gameId = last.game_id;
+          }
+        }
+      }
+
+      if (!gameId) {
+        throw new Error("Could not retrieve gameId from GenLayer after create. Check the Studio for the tx.");
+      }
 
       const res = await fetch("/api/rooms", {
         method: "POST",
