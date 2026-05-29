@@ -40,7 +40,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   updateIsMyTurn: () => {
     const { gameState, myWallet } = get();
     if (!gameState || !myWallet) { set({ isMyTurn: false }); return; }
-    const current = gameState.players[gameState.currentPlayerIndex];
+    const players = gameState.players;
+    const idx = gameState.currentPlayerIndex;
+    if (!Array.isArray(players) || typeof idx !== "number" || idx < 0 || idx >= players.length) {
+      set({ isMyTurn: false });
+      return;
+    }
+    const current = players[idx];
     set({ isMyTurn: current?.wallet?.toLowerCase() === myWallet.toLowerCase() });
   },
 }));

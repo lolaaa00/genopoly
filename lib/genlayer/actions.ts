@@ -7,8 +7,12 @@ export async function fetchGameState(gameId: string): Promise<GameState | null> 
   try {
     const raw = await contract.getGame(gameId);
     if (!raw) return null;
-    if (typeof raw === "string") return JSON.parse(raw) as GameState;
-    return raw as GameState;
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    // Contract returns {} for unknown game IDs — treat as not-found
+    if (!parsed || typeof parsed !== "object" || !Array.isArray((parsed as GameState).players)) {
+      return null;
+    }
+    return parsed as GameState;
   } catch {
     return null;
   }
