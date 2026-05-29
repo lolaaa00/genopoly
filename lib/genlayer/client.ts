@@ -38,6 +38,11 @@ export async function getGenLayerClient() {
 }
 
 export function getContractAddress(): `0x${string}` {
-  const addr = process.env.NEXT_PUBLIC_GENLAYER_CONTRACT_ADDRESS || "";
+  const addr = process.env.NEXT_PUBLIC_GENLAYER_CONTRACT_ADDRESS;
+  if (!addr || !addr.startsWith("0x") || addr.length !== 42) {
+    throw new Error(
+      "NEXT_PUBLIC_GENLAYER_CONTRACT_ADDRESS is not configured. Set it in Vercel → Settings → Environment Variables and redeploy."
+    );
+  }
   return addr as `0x${string}`;
 }
