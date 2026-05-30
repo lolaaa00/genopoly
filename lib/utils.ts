@@ -3,8 +3,9 @@ export function truncateAddress(addr: string, chars = 4): string {
   return `${addr.slice(0, chars + 2)}...${addr.slice(-chars)}`;
 }
 
-export function formatBalance(amount: number): string {
-  return `G${amount.toLocaleString()}`;
+export function formatBalance(amount: number | undefined | null): string {
+  const n = typeof amount === "number" && Number.isFinite(amount) ? amount : 0;
+  return `G${n.toLocaleString()}`;
 }
 
 export function cn(...classes: (string | undefined | null | false)[]): string {

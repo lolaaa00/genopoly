@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import WalletButton from "@/components/wallet/WalletButton";
-import { Trophy, History, User, Gamepad2 } from "lucide-react";
+import { Trophy, History, Gamepad2, BookOpen } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/lobby", label: "Lobby", icon: Gamepad2 },
+  { href: "/how-to-play", label: "How to Play", icon: BookOpen },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/history", label: "History", icon: History },
 ];

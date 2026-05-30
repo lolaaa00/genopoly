@@ -46,9 +46,13 @@ function LobbyInner() {
       .on("broadcast", { event: "chat" }, ({ payload }) => {
         setMessages((prev) => [...prev, payload as ChatMessage]);
       })
+      .on("broadcast", { event: "game_started" }, ({ payload }) => {
+        const p = payload as { genlayerGameId?: string };
+        if (p?.genlayerGameId) router.push(`/game/${p.genlayerGameId}`);
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [roomId]);
+  }, [roomId, router]);
 
   async function fetchRoom(id: string) {
     try {
@@ -93,6 +97,13 @@ function LobbyInner() {
     setLoading(true);
     try {
       await startGame(room.genlayerGameId, address);
+      // Tell other players in the lobby to follow us into the game
+      const supabase = getSupabaseClient();
+      await supabase.channel(`room:${roomId}`).send({
+        type: "broadcast",
+        event: "game_started",
+        payload: { genlayerGameId: room.genlayerGameId },
+      });
       router.push(`/game/${room.genlayerGameId}`);
     } catch (e) {
       console.error(e);
