@@ -31,16 +31,22 @@ export async function getGenLayerClient() {
       studionet: unknown;
     };
 
-    // Allow overriding RPC URL via env (useful for self-hosted Studionet mirrors)
-    const rpcOverride = process.env.NEXT_PUBLIC_GENLAYER_RPC_URL;
+    // Route viem reads through our /api/rpc proxy to dodge CORS in the browser.
+    // The proxy then forwards to GENLAYER_RPC_UPSTREAM server-side. When SSR'd
+    // (window === undefined), fall back to the absolute upstream URL.
+    const proxyUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/api/rpc`
+        : process.env.NEXT_PUBLIC_GENLAYER_RPC_URL || "https://studio.genlayer.com/api";
+
     let chain: unknown = studionet;
-    if (rpcOverride && typeof studionet === "object" && studionet !== null) {
+    if (typeof studionet === "object" && studionet !== null) {
       const s = studionet as { rpcUrls?: { default?: { http?: string[] } } };
       chain = {
         ...studionet,
         rpcUrls: {
           ...(s.rpcUrls ?? {}),
-          default: { http: [rpcOverride] },
+          default: { http: [proxyUrl] },
         },
       };
     }
