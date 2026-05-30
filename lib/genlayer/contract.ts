@@ -1,6 +1,7 @@
 "use client";
 
 import { getGenLayerClient, getContractAddress } from "./client";
+import { ensureCorrectChain } from "./chain";
 
 async function callView(method: string, args: unknown[] = []): Promise<unknown> {
   const client = await getGenLayerClient();
@@ -22,6 +23,12 @@ async function callView(method: string, args: unknown[] = []): Promise<unknown> 
 async function callWrite(method: string, sender: string, args: unknown[] = []): Promise<{ hash?: string; result?: unknown; error?: string }> {
   const client = await getGenLayerClient();
   if (!client) return { error: "GenLayer client unavailable — is your wallet connected?" };
+  // Make sure the user's wallet is on the GenLayer chain before signing anything.
+  try {
+    await ensureCorrectChain();
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
   try {
     const c = client as {
       writeContract: (opts: unknown) => Promise<unknown>;

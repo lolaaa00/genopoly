@@ -15,6 +15,7 @@ import ProofPanel from "@/components/proof/ProofPanel";
 import WinnerModal from "@/components/game/WinnerModal";
 import ChatPanel from "@/components/game/ChatPanel";
 import WalletButton from "@/components/wallet/WalletButton";
+import InGameHelp from "@/components/game/InGameHelp";
 import type { MoveHistoryItem } from "@/types";
 
 export default function GamePage({ params }: { params: Promise<{ gameId: string }> }) {
@@ -91,30 +92,36 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
   const pendingSpaceId = myPlayer?.position ?? 0;
 
   return (
-    <div style={{ background: "#071013", minHeight: "calc(100vh - 60px)", padding: "20px 16px" }}>
-      <div style={{ maxWidth: 1300, margin: "0 auto", display: "grid", gridTemplateColumns: "240px 1fr 260px", gap: 16, alignItems: "start" }}>
-        {/* Left: Players + Turn */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ background: "#071013", minHeight: "calc(100vh - 60px)", padding: "16px 12px" }}>
+      <div className="genopoly-game-grid" style={{ maxWidth: 1300, margin: "0 auto", gap: 14, alignItems: "start" }}>
+        {/* Players + Turn */}
+        <div className="genopoly-col-left" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <TurnPanel gameState={gameState} myWallet={address ?? ""} />
           <PlayerSidebar gameState={gameState} myWallet={address ?? ""} />
         </div>
 
-        {/* Center: Board + Dice + History */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
-          <GameBoard gameState={gameState} />
+        {/* Board + Dice + History */}
+        <div className="genopoly-col-center" style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", minWidth: 0 }}>
+          <div style={{ width: "100%", maxWidth: 720, overflowX: "auto" }}>
+            <GameBoard gameState={gameState} />
+          </div>
           {address && <DicePanel gameId={gameId} myWallet={address} />}
           {gameState.auction?.active && address && myPlayer && (
             <AuctionPanel gameId={gameId} myWallet={address} auction={gameState.auction} myBalance={myPlayer.balance} />
           )}
-          <MoveHistory moves={moves} />
+          <div style={{ width: "100%", maxWidth: 720 }}>
+            <MoveHistory moves={moves} />
+          </div>
         </div>
 
-        {/* Right: Chat + Proof */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Chat + Proof */}
+        <div className="genopoly-col-right" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <ProofPanel />
           {address && <ChatPanel roomId={gameId} myWallet={address} />}
         </div>
       </div>
+
+      <InGameHelp />
 
       {/* Modals */}
       {showBuyModal && address && myPlayer && (
@@ -132,6 +139,26 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        .genopoly-game-grid {
+          display: grid;
+          grid-template-columns: 240px 1fr 280px;
+        }
+        @media (max-width: 1100px) {
+          .genopoly-game-grid {
+            grid-template-columns: 220px 1fr;
+          }
+          .genopoly-col-right {
+            grid-column: 1 / -1;
+          }
+        }
+        @media (max-width: 760px) {
+          .genopoly-game-grid {
+            grid-template-columns: 1fr;
+          }
+          .genopoly-col-left, .genopoly-col-right {
+            grid-column: 1 / -1;
+          }
+        }
       `}</style>
     </div>
   );

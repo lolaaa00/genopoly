@@ -25,6 +25,7 @@ function LobbyInner() {
   const [chatInput, setChatInput] = useState("");
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,15 +80,20 @@ function LobbyInner() {
   async function handleJoin() {
     if (!address || !room) return;
     setLoading(true);
+    setErrMsg(null);
     try {
-      await joinGame(room.genlayerGameId, address);
+      const result = await joinGame(room.genlayerGameId, address);
+      if (result?.error) {
+        setErrMsg(result.error);
+        return;
+      }
       await fetch(`/api/rooms/${room.id}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ wallet: address }),
       });
     } catch (e) {
-      console.error(e);
+      setErrMsg(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -96,8 +102,13 @@ function LobbyInner() {
   async function handleStart() {
     if (!address || !room) return;
     setLoading(true);
+    setErrMsg(null);
     try {
-      await startGame(room.genlayerGameId, address);
+      const result = await startGame(room.genlayerGameId, address);
+      if (result?.error) {
+        setErrMsg(result.error);
+        return;
+      }
       // Tell other players in the lobby to follow us into the game
       const supabase = getSupabaseClient();
       await supabase.channel(`room:${roomId}`).send({
@@ -107,7 +118,7 @@ function LobbyInner() {
       });
       router.push(`/game/${room.genlayerGameId}`);
     } catch (e) {
-      console.error(e);
+      setErrMsg(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -218,6 +229,11 @@ function LobbyInner() {
                 {copied ? <Check size={14} /> : <Copy size={14} />} Copy Invite
               </Button>
             </div>
+            {errMsg && (
+              <div style={{ marginTop: 14, padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", color: "#FCA5A5", borderRadius: 10, fontSize: 13, lineHeight: 1.5 }}>
+                {errMsg}
+              </div>
+            )}
           </div>
         </div>
 
