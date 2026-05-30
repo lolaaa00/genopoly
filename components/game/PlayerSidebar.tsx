@@ -1,12 +1,15 @@
+"use client";
 import type { GameState } from "@/types";
-import { truncateAddress, formatBalance } from "@/lib/utils";
+import { formatBalance } from "@/lib/utils";
 import PlayerToken from "@/components/board/PlayerToken";
 import Badge from "@/components/ui/Badge";
 import { BOARD_SPACES } from "@/lib/constants";
+import { useUsernames } from "@/hooks/useUsernames";
 
 interface Props { gameState: GameState; myWallet: string; }
 
 export default function PlayerSidebar({ gameState, myWallet }: Props) {
+  const nameOf = useUsernames(gameState.players.map((p) => p.wallet));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {gameState.players.map((p, i) => {
@@ -17,7 +20,7 @@ export default function PlayerSidebar({ gameState, myWallet }: Props) {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <PlayerToken playerIndex={i} size={22} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{truncateAddress(p.wallet, 4)}</div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{nameOf(p.wallet, 4)}</div>
                 <div style={{ fontSize: 11, color: "#77918B" }}>{BOARD_SPACES[p.position]?.name ?? `Space ${p.position}`}</div>
               </div>
               <Badge variant={p.status === "active" ? (isCurrent ? "copper" : "default") : p.status === "bankrupt" ? "danger" : "warning"}>

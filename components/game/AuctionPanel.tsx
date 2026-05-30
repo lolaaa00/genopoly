@@ -3,13 +3,15 @@ import { useState } from "react";
 import { placeAuctionBid, passAuction } from "@/lib/genlayer/contract";
 import type { AuctionState } from "@/types";
 import Button from "@/components/ui/Button";
-import { formatBalance, truncateAddress } from "@/lib/utils";
+import { formatBalance } from "@/lib/utils";
 import { BOARD_SPACES } from "@/lib/constants";
 import { Gavel } from "lucide-react";
+import { useUsernames } from "@/hooks/useUsernames";
 
 interface Props { gameId: string; myWallet: string; auction: AuctionState; myBalance: number; }
 
 export default function AuctionPanel({ gameId, myWallet, auction, myBalance }: Props) {
+  const nameOf = useUsernames([auction.highestBidder]);
   const [bid, setBid] = useState(auction.highestBid + 10);
   const [loading, setLoading] = useState(false);
   const space = BOARD_SPACES[auction.spaceId];
@@ -35,7 +37,7 @@ export default function AuctionPanel({ gameId, myWallet, auction, myBalance }: P
       <div style={{ color: "#77918B", fontSize: 12, marginBottom: 16 }}>Round {auction.round} · {auction.participants.length - auction.passedPlayers.length} remaining</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16, background: "#071013", borderRadius: 10, padding: 12, fontSize: 13 }}>
         <div><div style={{ color: "#77918B", fontSize: 11 }}>Highest Bid</div><div style={{ fontWeight: 700, color: "#38BDF8" }}>{formatBalance(auction.highestBid)}</div></div>
-        <div><div style={{ color: "#77918B", fontSize: 11 }}>Leader</div><div style={{ fontWeight: 700 }}>{auction.highestBidder ? truncateAddress(auction.highestBidder, 3) : "None"}</div></div>
+        <div><div style={{ color: "#77918B", fontSize: 11 }}>Leader</div><div style={{ fontWeight: 700 }}>{auction.highestBidder ? nameOf(auction.highestBidder, 3) : "None"}</div></div>
       </div>
       {!hasPassed && (
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>

@@ -2,14 +2,16 @@
 import { useState, useRef, useEffect } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { useGameStore } from "@/store/gameStore";
-import { truncateAddress, generateId } from "@/lib/utils";
+import { generateId } from "@/lib/utils";
 import { Send } from "lucide-react";
 import type { ChatMessage } from "@/types";
+import { useUsernames } from "@/hooks/useUsernames";
 
 interface Props { roomId: string; myWallet: string; }
 
 export default function ChatPanel({ roomId, myWallet }: Props) {
   const { chatMessages, addChatMessage } = useGameStore();
+  const nameOf = useUsernames(chatMessages.map((m) => m.wallet));
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +40,7 @@ export default function ChatPanel({ roomId, myWallet }: Props) {
       <div style={{ flex: 1, overflow: "auto", padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
         {chatMessages.map((m) => (
           <div key={m.id} style={{ fontSize: 12 }}>
-            <span style={{ color: "#D98236", fontWeight: 600, marginRight: 6 }}>{truncateAddress(m.wallet, 3)}</span>
+            <span style={{ color: "#D98236", fontWeight: 600, marginRight: 6 }}>{nameOf(m.wallet, 3)}</span>
             <span style={{ color: "#B3C7C3" }}>{m.message}</span>
           </div>
         ))}

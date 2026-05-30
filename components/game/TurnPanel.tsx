@@ -1,14 +1,16 @@
+"use client";
 import type { GameState } from "@/types";
-import { truncateAddress } from "@/lib/utils";
 import PlayerToken from "@/components/board/PlayerToken";
 import Badge from "@/components/ui/Badge";
 import { BOARD_SPACES } from "@/lib/constants";
+import { useUsernames } from "@/hooks/useUsernames";
 
 interface Props { gameState: GameState; myWallet: string; }
 
 export default function TurnPanel({ gameState, myWallet }: Props) {
   const cp = gameState.players[gameState.currentPlayerIndex];
   const isMe = cp?.wallet?.toLowerCase() === myWallet.toLowerCase();
+  const nameOf = useUsernames([cp?.wallet]);
 
   return (
     <div style={{ background: isMe ? "rgba(217,130,54,0.04)" : "#0D1F23", border: `1px solid ${isMe ? "rgba(217,130,54,0.4)" : "rgba(179,199,195,0.18)"}`, borderRadius: 14, padding: 20 }}>
@@ -16,7 +18,7 @@ export default function TurnPanel({ gameState, myWallet }: Props) {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <PlayerToken playerIndex={gameState.currentPlayerIndex} size={28} />
         <div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{truncateAddress(cp?.wallet ?? "")}</div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{nameOf(cp?.wallet)}</div>
           <div style={{ fontSize: 12, color: "#77918B" }}>Turn #{gameState.turnNumber}</div>
         </div>
         {isMe && <div style={{ marginLeft: "auto" }}><Badge variant="copper">YOUR TURN</Badge></div>}

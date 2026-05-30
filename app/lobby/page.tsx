@@ -11,6 +11,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import { truncateAddress, generateId } from "@/lib/utils";
 import { Users, Copy, Check, Send, Play, RefreshCw } from "lucide-react";
 import type { Room, RoomPlayer, ChatMessage } from "@/types";
+import { useUsernames } from "@/hooks/useUsernames";
 
 function LobbyInner() {
   const searchParams = useSearchParams();
@@ -129,6 +130,11 @@ function LobbyInner() {
 
   const isCreator = room?.creatorWallet?.toLowerCase() === address?.toLowerCase();
   const isJoined = players.some((p) => p.wallet?.toLowerCase() === address?.toLowerCase());
+  const nameOf = useUsernames([
+    ...players.map((p) => p.wallet),
+    ...messages.map((m) => m.wallet),
+    ...openRooms.map((r) => r.creatorWallet),
+  ]);
 
   if (!roomId) {
     return (
@@ -155,7 +161,7 @@ function LobbyInner() {
               {openRooms.map((r) => (
                 <div key={r.id} style={{ background: "#0D1F23", border: "1px solid rgba(179,199,195,0.18)", borderRadius: 12, padding: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
                   <div>
-                    <div style={{ fontWeight: 700, marginBottom: 4 }}>{truncateAddress(r.creatorWallet)}&apos;s Room</div>
+                    <div style={{ fontWeight: 700, marginBottom: 4 }}>{nameOf(r.creatorWallet)}&apos;s Room</div>
                     <div style={{ fontSize: 13, color: "#77918B" }}>{r.playerCount}/{r.maxPlayers} players · {r.isPublic ? "Public" : "Private"}</div>
                   </div>
                   <Button variant="emerald" size="sm" onClick={() => router.push(`/lobby?room=${r.id}`)}>Join</Button>
@@ -188,7 +194,7 @@ function LobbyInner() {
                 {players.map((p, i) => (
                   <div key={p.wallet} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#132E35", borderRadius: 10 }}>
                     <div style={{ width: 28, height: 28, borderRadius: "50%", background: ["#D98236","#2DD4BF","#FBBF24","#A78BFA"][i], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#071013" }}>{i + 1}</div>
-                    <span style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>{truncateAddress(p.wallet)}</span>
+                    <span style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>{nameOf(p.wallet)}</span>
                     {p.wallet?.toLowerCase() === room?.creatorWallet?.toLowerCase() && <Badge variant="copper">Host</Badge>}
                     <Badge variant={p.isReady ? "success" : "default"}>{p.isReady ? "Ready" : "Waiting"}</Badge>
                   </div>
@@ -221,7 +227,7 @@ function LobbyInner() {
           <div style={{ flex: 1, overflow: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
             {messages.map((m) => (
               <div key={m.id} style={{ fontSize: 13 }}>
-                <span style={{ color: "#D98236", fontWeight: 600, marginRight: 6 }}>{truncateAddress(m.wallet, 3)}</span>
+                <span style={{ color: "#D98236", fontWeight: 600, marginRight: 6 }}>{nameOf(m.wallet, 3)}</span>
                 <span style={{ color: "#B3C7C3" }}>{m.message}</span>
               </div>
             ))}
