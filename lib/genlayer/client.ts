@@ -16,20 +16,41 @@ function getEthereumProvider(): EthProvider | null {
 /**
  * Returns a GenLayer client. If a browser wallet provider is available,
  * it is wired in so write transactions can be signed.
+ *
+ * IMPORTANT: pass `chain: studionet` (not bare `endpoint`) so viem sees
+ * chainId 61999. Without this, writeContract trips
+ * "chainId should be same as current chainId" against the connected wallet.
  */
 export async function getGenLayerClient() {
   const provider = getEthereumProvider();
-  // Recreate the client if we now have a provider but the cached one didn't
   if (glClient && (!provider || glClientHasProvider)) return glClient;
   try {
-    const { createClient } = await import("genlayer-js");
-    const rpcUrl = process.env.NEXT_PUBLIC_GENLAYER_RPC_URL || "http://localhost:4000/api";
-    const config: Record<string, unknown> = { endpoint: rpcUrl };
+    const mod = await import("genlayer-js");
+    const { createClient, studionet } = mod as unknown as {
+      createClient: (config: unknown) => unknown;
+      studionet: unknown;
+    };
+
+    // Allow overriding RPC URL via env (useful for self-hosted Studionet mirrors)
+    const rpcOverride = process.env.NEXT_PUBLIC_GENLAYER_RPC_URL;
+    let chain: unknown = studionet;
+    if (rpcOverride && typeof studionet === "object" && studionet !== null) {
+      const s = studionet as { rpcUrls?: { default?: { http?: string[] } } };
+      chain = {
+        ...studionet,
+        rpcUrls: {
+          ...(s.rpcUrls ?? {}),
+          default: { http: [rpcOverride] },
+        },
+      };
+    }
+
+    const config: Record<string, unknown> = { chain };
     if (provider) {
       config.provider = provider;
       glClientHasProvider = true;
     }
-    glClient = createClient(config as Parameters<typeof createClient>[0]);
+    glClient = createClient(config);
   } catch (e) {
     console.warn("GenLayer client unavailable:", e);
     glClient = null;
