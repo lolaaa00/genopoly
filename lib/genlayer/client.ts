@@ -1,11 +1,13 @@
 "use client";
 
+import { getSessionAccount, subscribeWallet } from "@/lib/wallet/embedded";
+
 type EthProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 };
 
 let glClient: unknown = null;
-let glClientHasProvider = false;
+let glClientSignature = "";
 
 function getEthereumProvider(): EthProvider | null {
   if (typeof window === "undefined") return null;
@@ -13,27 +15,42 @@ function getEthereumProvider(): EthProvider | null {
   return w.ethereum ?? null;
 }
 
+// Invalidate the cached client whenever the embedded wallet locks/unlocks.
+if (typeof window !== "undefined") {
+  subscribeWallet(() => {
+    glClient = null;
+    glClientSignature = "";
+  });
+}
+
 /**
- * Returns a GenLayer client. If a browser wallet provider is available,
- * it is wired in so write transactions can be signed.
- *
- * IMPORTANT: pass `chain: studionet` (not bare `endpoint`) so viem sees
- * chainId 61999. Without this, writeContract trips
- * "chainId should be same as current chainId" against the connected wallet.
+ * Returns a GenLayer client wired for either:
+ *  - the unlocked embedded wallet (privateKeyToAccount), or
+ *  - the injected browser wallet (window.ethereum).
+ * Falls back to a read-only client when no signer is available.
  */
 export async function getGenLayerClient() {
-  const provider = getEthereumProvider();
-  if (glClient && (!provider || glClientHasProvider)) return glClient;
+  const embedded = getSessionAccount();
+  const provider = embedded ? null : getEthereumProvider();
+
+  const signature = embedded
+    ? `embedded:${embedded.address.toLowerCase()}`
+    : provider
+    ? "external"
+    : "readonly";
+
+  if (glClient && glClientSignature === signature) return glClient;
+
   try {
-    const [glMod, chainsMod] = await Promise.all([
+    const [glMod, chainsMod, viemAccountsMod] = await Promise.all([
       import("genlayer-js"),
       import("genlayer-js/chains"),
+      import("viem/accounts"),
     ]);
     const createClient = (glMod as unknown as { createClient: (config: unknown) => unknown }).createClient;
     const studionet = (chainsMod as unknown as { studionet: unknown }).studionet;
+    const { privateKeyToAccount } = viemAccountsMod;
 
-    // Route viem reads through our /api/rpc proxy to dodge CORS in the browser.
-    // SSR fallback is the absolute upstream URL.
     const proxyUrl =
       typeof window !== "undefined"
         ? `${window.location.origin}/api/rpc`
@@ -52,14 +69,18 @@ export async function getGenLayerClient() {
     };
 
     const config: Record<string, unknown> = { chain };
-    if (provider) {
+    if (embedded) {
+      config.account = privateKeyToAccount(embedded.privateKey);
+    } else if (provider) {
       config.provider = provider;
-      glClientHasProvider = true;
     }
+
     glClient = createClient(config);
+    glClientSignature = signature;
   } catch (e) {
     console.warn("GenLayer client unavailable:", e);
     glClient = null;
+    glClientSignature = "";
   }
   return glClient;
 }
@@ -72,4 +93,8 @@ export function getContractAddress(): `0x${string}` {
     );
   }
   return addr as `0x${string}`;
+}
+
+export function isEmbeddedSession(): boolean {
+  return getSessionAccount() !== null;
 }
