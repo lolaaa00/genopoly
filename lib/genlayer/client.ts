@@ -25,31 +25,31 @@ export async function getGenLayerClient() {
   const provider = getEthereumProvider();
   if (glClient && (!provider || glClientHasProvider)) return glClient;
   try {
-    const mod = await import("genlayer-js");
-    const { createClient, studionet } = mod as unknown as {
-      createClient: (config: unknown) => unknown;
-      studionet: unknown;
-    };
+    const [glMod, chainsMod] = await Promise.all([
+      import("genlayer-js"),
+      import("genlayer-js/chains"),
+    ]);
+    const createClient = (glMod as unknown as { createClient: (config: unknown) => unknown }).createClient;
+    const studionet = (chainsMod as unknown as { studionet: unknown }).studionet;
 
     // Route viem reads through our /api/rpc proxy to dodge CORS in the browser.
-    // The proxy then forwards to GENLAYER_RPC_UPSTREAM server-side. When SSR'd
-    // (window === undefined), fall back to the absolute upstream URL.
+    // SSR fallback is the absolute upstream URL.
     const proxyUrl =
       typeof window !== "undefined"
         ? `${window.location.origin}/api/rpc`
         : process.env.NEXT_PUBLIC_GENLAYER_RPC_URL || "https://studio.genlayer.com/api";
 
-    let chain: unknown = studionet;
-    if (typeof studionet === "object" && studionet !== null) {
-      const s = studionet as { rpcUrls?: { default?: { http?: string[] } } };
-      chain = {
-        ...studionet,
-        rpcUrls: {
-          ...(s.rpcUrls ?? {}),
-          default: { http: [proxyUrl] },
-        },
-      };
+    if (!studionet || typeof studionet !== "object") {
+      throw new Error("genlayer-js/chains did not export studionet");
     }
+    const s = studionet as { rpcUrls?: { default?: { http?: string[] } } };
+    const chain = {
+      ...studionet,
+      rpcUrls: {
+        ...(s.rpcUrls ?? {}),
+        default: { http: [proxyUrl] },
+      },
+    };
 
     const config: Record<string, unknown> = { chain };
     if (provider) {
