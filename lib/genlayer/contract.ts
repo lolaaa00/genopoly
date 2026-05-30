@@ -27,11 +27,17 @@ async function callWrite(method: string, sender: string, args: unknown[] = []): 
       writeContract: (opts: unknown) => Promise<unknown>;
       waitForTransactionReceipt?: (opts: { hash: string }) => Promise<unknown>;
     };
+    // viem/genlayer-js expects `account` to be an Account object (with .address),
+    // not a raw address string. Build a minimal json-rpc Account.
+    const account = {
+      address: sender as `0x${string}`,
+      type: "json-rpc" as const,
+    };
     const writeResult = await c.writeContract({
       address: getContractAddress(),
       functionName: method,
       args,
-      account: sender as `0x${string}`,
+      account,
       value: BigInt(0),
     });
     const hash =
