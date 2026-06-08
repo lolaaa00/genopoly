@@ -17,10 +17,42 @@ A GenLayer-refereed property trading board game where every dice roll, rent paym
 | Resource | Link |
 |---|---|
 | **App** | https://genopoly-w3la.vercel.app |
-| **Intelligent Contract** | [`0x5A03Fc39232025b6AA0B8B067569F3DAc8375bC6`](https://studio.genlayer.com/) |
+| **Intelligent Contract** | [`0x710aB9a34fcFd248C1e5040284aEcCd1a97297Fa`](https://studio.genlayer.com/) |
 | **Chain** | GenLayer Studionet (id `61999`) |
 | **RPC** | `https://studio.genlayer.com/api` |
 | **Source** | https://github.com/lolaaa00/genopoly |
+
+---
+
+## 🤖 GenLayer nondeterministic consensus
+
+Genopoly uses GenLayer's **Equivalence Principle** in two product-critical paths — both shape the game's outcome:
+
+### 1. AI-generated Event Cards
+
+When a player lands on a `market_event` or `city_event` space, the contract builds a context payload (wallet, balance, position, properties owned, move number) and calls an LLM through `gl.nondet.exec_prompt(...)`. Validators independently run the LLM and converge on a single card via:
+
+```python
+gl.eq_principle_prompt_comparative(
+    runner,
+    "Both outputs propose a card with the same effect.type. "
+    "Numeric amounts within 20%. Text wording may differ."
+)
+```
+
+The card's mechanical effect (`gain` / `lose` / `advance` / `go_to_lockup` / `collect_from_all` / `pay_to_all` / `release_card`) is validated, clamped to safe ranges, and applied to player state on-chain. **Different validators consistently agree, and the consensus directly changes who wins.**
+
+### 2. AI Referee for disputes
+
+`resolve_dispute_ai(game_id, dispute_id)` lets any participant invoke an AI Referee. The contract assembles the dispute reason, the last 10 moves, the dispute snapshot of the dice roll and pending action, and asks an LLM to issue a ruling (`uphold` / `dismiss`) plus an optional refund. Resolved through the same Equivalence Principle. If upheld, the contract pays the refund on-chain.
+
+### Deterministic fallback
+
+If the LLM is unavailable or validators diverge irrecoverably, each path falls back to a hash-pseudo-random static card / dismiss-by-default ruling so games never deadlock.
+
+### What stays deterministic
+
+Dice, turn order, rent math, district bonuses, transit/utility scaling, mortgage values, auction resolution, and bankruptcy unwind remain pure deterministic Python — those are correctness-critical and must be byte-identical across validators.
 
 ---
 
@@ -85,7 +117,7 @@ Edit `.env.local`:
 
 ```env
 NEXT_PUBLIC_APP_NAME=Genopoly
-NEXT_PUBLIC_GENLAYER_CONTRACT_ADDRESS=0x5A03Fc39232025b6AA0B8B067569F3DAc8375bC6
+NEXT_PUBLIC_GENLAYER_CONTRACT_ADDRESS=0x710aB9a34fcFd248C1e5040284aEcCd1a97297Fa
 NEXT_PUBLIC_GENLAYER_RPC_URL=https://studio.genlayer.com/api
 NEXT_PUBLIC_CHAIN_ID=61999
 NEXT_PUBLIC_SUPABASE_URL=<your supabase project url>
